@@ -1,0 +1,27 @@
+# DO NOT MERGE: probes Spack behavior on native runners.
+name: spack probe
+on:
+  push:
+    branches: [spack-probe]
+jobs:
+  probe:
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - run: |
+        git init -q spack && git -C spack fetch -q --depth 1 https://github.com/spack/spack.git e9a7922af3e28d24308f47ed7ce1ecd5eb9db817 && git -C spack checkout -q FETCH_HEAD
+        export PATH=$PWD/spack/bin:$PATH SPACK_DISABLE_LOCAL_CONFIG=1
+        spack arch
+        t() {
+          name=$1; shift
+          rm -rf e && mkdir e
+          printf 'spack:\n  specs: [zlib]\n  view: false\n  packages:\n    all:\n      require:\n%s\n' "$1" > e/spack.yaml
+          echo "== $name: $(spack -e e concretize --fresh 2>&1 | grep -oE 'zlib@[^ ]+ .*target=[a-z0-9_]+|Error.*' | grep -oE 'target=[a-z0-9_]+|Error.*' | sort -u | xargs)"
+        }
+        t plain '      - target=aarch64'
+        t when-range '      - spec: target=aarch64
+        when: "target=aarch64:"'
+        t when-exact-host '      - spec: target=aarch64
+        when: "target=neoverse_n2"'
+        t when-platform '      - spec: target=aarch64
+        when: "platform=linux"'
+        t one_of-x86-aarch64 '      - one_of: [target=x86_64_v3, target=aarch64]'
