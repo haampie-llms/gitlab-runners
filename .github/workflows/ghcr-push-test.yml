@@ -1,0 +1,64 @@
+# DO NOT MERGE: checks that a workflow in this fork can push to ghcr.io,
+# both a plain docker image and a Spack OCI build cache + tagged image,
+# natively on x86_64 and aarch64.
+name: ghcr push test
+on:
+  push:
+    branches: [ghcr-push-test]
+  workflow_dispatch:
+
+env:
+  SPACK_COMMIT: e9a7922af3e28d24308f47ed7ce1ecd5eb9db817
+  SPACK_PACKAGES_COMMIT: 8933fbb6925be105d493d2eff0c0b375a2ac1cc8
+  CACHE: ghcr.io/${{ github.repository_owner }}/ghcr-push-test-cache
+
+jobs:
+  push:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - {runner: ubuntu-24.04, arch: amd64}
+        - {runner: ubuntu-24.04-arm, arch: arm64}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - name: Plain docker push
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+        img=ghcr.io/${{ github.repository_owner }}/ghcr-push-test:${{ matrix.arch }}
+        printf 'FROM busybox\nRUN echo hello > /hello\n' | docker build -t $img -
+        docker push $img
+
+    - name: Spack buildcache push with --tag
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git clone -q --filter=blob:none https://github.com/spack/spack.git
+        git -C spack checkout -q $SPACK_COMMIT
+        git clone -q --filter=blob:none https://github.com/spack/spack-packages.git
+        git -C spack-packages checkout -q $SPACK_PACKAGES_COMMIT
+        export PATH=$PWD/spack/bin:$PATH
+        spack repo set --destination $PWD/spack-packages builtin
+        spack mirror add --unsigned \
+          --oci-username-variable GITHUB_ACTOR --oci-password-variable GITHUB_TOKEN \
+          test oci://$CACHE
+        spack install gmake
+        spack buildcache push --update-index --base-image ubuntu:24.04 \
+          --tag gmake-${{ matrix.arch }} test gmake
+        docker run --rm $CACHE:gmake-${{ matrix.arch }} make --version
+
+  manifest:
+    needs: push
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+    steps:
+    - name: Merge per-arch images into a multi-arch tag
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+        docker buildx imagetools create -t $CACHE:gmake $CACHE:gmake-amd64 $CACHE:gmake-arm64
+        docker buildx imagetools inspect $CACHE:gmake
+        docker run --rm $CACHE:gmake make --version
