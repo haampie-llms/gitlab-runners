@@ -9,7 +9,7 @@ env:
   SPACK_REPOSITORY: haampie-llms/spack
   SPACK_COMMIT: 11b8cae1bab08a94c39d180d68cd469d5f3c08ac
   PACKAGES_REPOSITORY: haampie-llms/spack-packages
-  PACKAGES_COMMIT: e0051ddce1d5ba25c74844143f20d63656c08158
+  PACKAGES_COMMIT: 00219b2aa3871f262cfdea26c04b792731c2f5cc
   IMAGE: ghcr.io/${{ github.repository_owner }}/linux-gnu-cache:linux-gnu-image
 
 jobs:
@@ -20,6 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+        - {runner: ubuntu-24.04, arch: amd64, target: x86_64_v3, stack: ml-linux-x86_64}
         - {runner: ubuntu-24.04-arm, arch: arm64, target: aarch64, stack: ml-linux-aarch64}
     permissions:
       contents: read
