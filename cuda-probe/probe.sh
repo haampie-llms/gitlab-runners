@@ -13,7 +13,7 @@ echo "### LLVM 18 clang.cindex against the image's libclang"
 llvm=$(dirname "$(dirname "$(readlink -f "$(command -v clang)")")")
 ls -l "$llvm"/lib/libclang.so*
 mkdir -p bindings/clang
-for f in __init__.py cindex.py; do
+for f in __init__.py cindex.py enumerations.py; do
   curl -fsSL "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-18.1.8/clang/bindings/python/clang/$f" -o bindings/clang/$f
 done
 cat > t.cpp <<'CPP'
@@ -62,4 +62,11 @@ start=$(date +%s)
 spack -e "$stack" concretize -j 4 > concretize.log 2>&1; rc=$?
 echo "rc=$rc in $(( $(date +%s) - start ))s"; [ $rc = 0 ] || tail -n 40 concretize.log
 spack -e "$stack" find -c --format '{name}@{version} %{compiler.name}@{compiler.version} {hash:7}' llvm py-libclang py-tensorflow py-jaxlib | sort -u
+echo "### which llvm does py-libclang link, and who needs llvm@22?"
+spack -e "$stack" find -c -d --deps-type=link,run --format '{name}@{version} %{compiler.name}@{compiler.version} {hash:7}' py-libclang 2>/dev/null \
+  || spack -e "$stack" find -c -d --format '{name}@{version} {hash:7}' py-libclang | grep -E 'py-libclang|llvm'
+for h in $(spack -e "$stack" find -c --format '{hash:7}' llvm@22 | awk '{print $NF}'); do
+  echo "dependents of llvm/$h:"
+  spack -e "$stack" find -c --format '{name}@{version} {hash:7}' "^/$h" | awk '{print "   " $0}' | head -n 15
+done
 exit $rc
