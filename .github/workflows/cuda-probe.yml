@@ -1,0 +1,52 @@
+name: cuda probe (throwaway)
+on:
+  push:
+    branches: [cuda-probe]
+    paths: [cuda-probe/**, .github/workflows/cuda-probe.yml]
+  workflow_dispatch:
+
+env:
+  SPACK_REPOSITORY: haampie-llms/spack
+  SPACK_COMMIT: 11b8cae1bab08a94c39d180d68cd469d5f3c08ac
+  PACKAGES_REPOSITORY: haampie-llms/spack-packages
+  PACKAGES_COMMIT: e0051ddce1d5ba25c74844143f20d63656c08158
+  IMAGE: ghcr.io/${{ github.repository_owner }}/linux-gnu-cache:linux-gnu-image
+
+jobs:
+  probe:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - {runner: ubuntu-24.04, arch: amd64, target: x86_64_v3, stack: ml-linux-x86_64}
+        - {runner: ubuntu-24.04-arm, arch: arm64, target: aarch64, stack: ml-linux-aarch64}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+    - uses: actions/checkout@v7
+    - name: Free disk space
+      run: |
+        sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL || true
+        df -h / /mnt
+    - uses: docker/login-action@v4
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Probe
+      run: |
+        mkdir work
+        docker run --rm -e PACKAGES_REPOSITORY -e PACKAGES_COMMIT -e SPACK_REPOSITORY -e SPACK_COMMIT \
+          -e SPACK_CI_TARGET=${{ matrix.target }} -e ML_STACK=${{ matrix.stack }} \
+          -e PYTHONUNBUFFERED=1 -v $PWD/work:/work -v $PWD/cuda-probe:/cuda-probe:ro \
+          $IMAGE-${{ matrix.arch }} /cuda-probe/probe.sh
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: cuda-probe-${{ matrix.arch }}
+        path: |
+          work/cuda-glibc.txt
+          work/ml-concretize.log
