@@ -1,4 +1,4 @@
-name: cuda probe (throwaway)
+name: probe (throwaway)
 on:
   push:
     branches: [cuda-probe]
@@ -20,7 +20,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - {runner: ubuntu-24.04, arch: amd64, target: x86_64_v3, stack: ml-linux-x86_64}
         - {runner: ubuntu-24.04-arm, arch: arm64, target: aarch64, stack: ml-linux-aarch64}
     permissions:
       contents: read
