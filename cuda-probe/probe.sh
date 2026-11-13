@@ -57,7 +57,7 @@ section "Newest GLIBC symbol version needed"
 glibc_scan() {
   find "$@" -type f \( -name '*.so*' -o -perm -u+x \) 2>/dev/null | while read -r f; do
     file -b "$f" | grep -q ELF || continue
-    v=$(objdump -T "$f" 2>/dev/null | grep -oE 'GLIBC_[0-9]+\.[0-9]+(\.[0-9]+)?' | sort -uV | tail -n1)
+    v=$(objdump -T "$f" 2>/dev/null | grep -oE 'GLIBC_[0-9]+\.[0-9]+(\.[0-9]+)?' | sort -uV | tail -n1 || true)
     [ -n "$v" ] && echo "$v $f"
   done | sort -V -k1,1
 }
