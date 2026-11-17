@@ -19,6 +19,8 @@ spack config add "packages:all:require:[target=$TARGET]"
 spack mirror add --unsigned --autopush \
   --oci-username-variable GITHUB_ACTOR --oci-password-variable GITHUB_TOKEN \
   cache "oci://$REGISTRY/linux-gnu-cache"
+# Fork only: read upstream's cache to resume its build.
+spack mirror add --unsigned upstream oci://ghcr.io/spack/linux-gnu-cache
 
 spack concretize
 # A package's own `require` would take precedence over the one for `all`.
