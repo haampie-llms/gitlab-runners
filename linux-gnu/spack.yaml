@@ -62,12 +62,8 @@ spack:
 
   # The image only sets PATH: builds in it should not pick up the view's
   # pkg-config, aclocal and CMake files, or the compilers through CC etc.
-  modules:
-    prefix_inspections::
-      bin: [PATH]
-
   env_vars:
-    unset: [CC, CXX, F77, FC, PYTHONPATH]
+    include: [PATH]
 
   concretizer:
     reuse: false

@@ -22,7 +22,7 @@ concurrency:
 
 env:
   SPACK_REPOSITORY: haampie-llms/spack
-  SPACK_COMMIT: 84e0eeff73a2c29a2c02ff7a50ab5bed2b6e7a3d
+  SPACK_COMMIT: 2dfbbe4a5e424ce972baa4dc57e29b0741018323
   PACKAGES_REPOSITORY: spack/spack-packages
   PACKAGES_COMMIT: ae70016a8d8a009525255a37ec2ad770d443d343
   REGISTRY: ghcr.io/${{ github.repository_owner }}
