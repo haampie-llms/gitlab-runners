@@ -10,6 +10,8 @@ for exe in python3 gcc g++ gfortran clang clang++ ld.lld ld ar git curl gpg aws 
   command -v "$exe"
 done
 aws --version
+# The image sets PATH, not the variables of other prefix inspections or of the packages.
+test -z "$(env | grep -E '^(CC|CXX|F77|FC|PYTHONPATH|CMAKE_PREFIX_PATH|PKG_CONFIG_PATH|ACLOCAL_PATH|MANPATH)=')"
 # spack buildcache update-index uses put_object(IfMatch=...): botocore >= 1.35.70
 python3 -c 'import clingo, boto3, botocore.session as s; assert "IfMatch" in s.get_session().get_service_model("s3").operation_model("PutObject").input_shape.members'
 
